@@ -211,6 +211,19 @@ void tensor_relu(Tensor* t) {
   }
 }
 
+int tensor_argmax(const Tensor* t) {
+  int max_idx = 0;
+  float max = t->values[0];
+  for (size_t i = 0; i < t->total_elements; i++) {
+    if (t->values[i] > max) {
+      max = t->values[i];
+      max_idx = i;
+    }
+  }
+  
+  return max_idx;
+}
+
 void tensor_print(const Tensor* t) {
   if (!t) return;
     print_recursive(t, 0, 0);

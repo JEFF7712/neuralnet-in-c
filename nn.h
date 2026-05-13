@@ -21,8 +21,14 @@ void nn_linear_backward(LinearLayer* layer, const Tensor* grad_output, Tensor* g
 void nn_relu_forward(Tensor* t);
 void nn_relu_backward(Tensor* grad_output, const Tensor* input_cache);
 
+void nn_softmax_forward(Tensor* t);
+void nn_softmax_backward(Tensor* grad_output, Tensor* input_cache);
+
 float nn_mse_loss(const Tensor* predictions, const Tensor* targets);
 void nn_mse_gradient(const Tensor* predictions, const Tensor* targets, Tensor* grad_output);
+
+float nn_cross_entropy_loss(const Tensor* predictions, const Tensor* targets);
+void nn_cross_entropy_gradient(const Tensor* predictions, const Tensor* targets, Tensor* grad_output);
 
 void nn_sgd_update(LinearLayer* layer, float learning_rate);
 

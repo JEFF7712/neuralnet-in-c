@@ -22,8 +22,8 @@ int main(void) {
   Tensor* grad_output = tensor_create(o_shape, 2);
   Tensor* grad_hidden = tensor_create(h_shape, 2);
   
-  float lr = 0.1f;
-  int epochs = 5000;
+  float lr = 0.01f;
+  int epochs = 1000;
   
   printf("Training XOR...\n");
   for (int epoch = 0; epoch < epochs; epoch++) {
@@ -57,7 +57,7 @@ int main(void) {
       tensor_free(grad_input_dummy);
     }
     
-    if (epoch % 500 == 0) {
+    if (epoch % 100 == 0) {
       printf("Epoch %d - Loss: %f\n", epoch, epoch_loss / 4.0f);
     }
   }

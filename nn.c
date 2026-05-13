@@ -73,6 +73,28 @@ void nn_relu_backward(Tensor* grad_output, const Tensor* input_cache) {
   }
 }
 
+void nn_softmax_forward(Tensor* t) {
+  float max = t->values[0];
+  
+  for (size_t i = 0; i < t->total_elements; i++) {
+    if (t->values[i] > max) {
+      max = t->values[i];
+    }
+  }
+  
+  float sum = 0.0f;
+  
+  for (size_t i = 0; i < t->total_elements; i++) {
+    t->values[i] = expf(t->values[i] - max);
+    sum += t->values[i];
+  }
+  
+  for (size_t i = 0; i < t->total_elements; i++) {
+    t->values[i] /= sum;
+  }
+  
+}
+
 float nn_mse_loss(const Tensor* predictions, const Tensor* targets){ 
   float sum = 0.0f;
   for(size_t i = 0; i < predictions->total_elements; i++) {
@@ -86,6 +108,25 @@ void nn_mse_gradient(const Tensor* predictions, const Tensor* targets, Tensor* g
   size_t n = predictions->total_elements;
   for(size_t i = 0; i < n; i++) {
      grad_output->values[i] = (-2.0f / (float)n) * (targets->values[i] - predictions->values[i]);
+  }
+}
+
+float nn_cross_entropy_loss(const Tensor* predictions, const Tensor* targets) {
+  float loss = 0.0f;
+  float epsilon = 1e-7f;
+  
+  for(size_t i = 0; i < targets->total_elements; i++) {
+    if (targets->values[i] > 0.0f) {
+      loss -= targets->values[i] * log(predictions->values[i] + epsilon);
+    }
+  }
+  
+  return loss;
+}
+
+void nn_cross_entropy_gradient(const Tensor* predictions, const Tensor* targets, Tensor* grad_output) {
+  for (size_t i = 0; i < targets->total_elements; i++) {
+    grad_output->values[i] = predictions->values[i] - targets->values[i];
   }
 }
 

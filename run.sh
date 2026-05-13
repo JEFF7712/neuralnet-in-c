@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cc="${CC:-gcc}"
-out="main"
+out="mnist"
 
-"$cc" -std=c17 -Wall -Wextra -pedantic main.c tensor.c nn.c -o "$out" -lm
-./"$out"
+"$cc" -std=c17 -Wall -Wextra -pedantic mnist.c tensor.c nn.c -o "$out" -lm
+./"$out" "$@"
