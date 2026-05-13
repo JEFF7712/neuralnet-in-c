@@ -203,14 +203,6 @@ static void print_recursive(const Tensor* t, int dim, size_t offset) {
   printf("]");
 }
 
-void tensor_relu(Tensor* t) {
-  for(size_t i = 0; i < t->total_elements; i++) {
-    if (t->values[i] <= 0) {
-      t->values[i] = 0;
-    }
-  }
-}
-
 int tensor_argmax(const Tensor* t) {
   int max_idx = 0;
   float max = t->values[0];

@@ -15,6 +15,12 @@ LinearLayer* linear_layer_create(int input_dim, int output_dim) {
   layer->grad_weight = tensor_create_zeros(weight_shape, 2);
   layer->grad_bias = tensor_create_zeros(bias_shape, 2);
   
+  layer->m_weight = tensor_create_zeros(weight_shape, 2);
+  layer->v_weight = tensor_create_zeros(weight_shape, 2);
+  
+  layer->m_bias = tensor_create_zeros(bias_shape, 2);
+  layer->v_bias = tensor_create_zeros(bias_shape, 2);
+  
   float scale = sqrtf(2.0f / (float)input_dim);
   tensor_rand(layer->weights, -scale, scale);
   
@@ -29,6 +35,10 @@ void nn_linear_free(LinearLayer* layer) {
   tensor_free(layer->bias);
   tensor_free(layer->grad_weight);
   tensor_free(layer->grad_bias);
+  tensor_free(layer->m_weight);
+  tensor_free(layer->v_weight);
+  tensor_free(layer->m_bias);
+  tensor_free(layer->v_bias);
   tensor_free(layer->input_cache);
   free(layer);
 }
@@ -62,7 +72,11 @@ void nn_linear_backward(LinearLayer* layer, const Tensor* grad_output, Tensor* g
 }
 
 void nn_relu_forward(Tensor* t) {
-  tensor_relu(t);
+  for(size_t i = 0; i < t->total_elements; i++) {
+    if (t->values[i] <= 0) {
+      t->values[i] = 0;
+    }
+  }
 }
 
 void nn_relu_backward(Tensor* grad_output, const Tensor* input_cache) {
@@ -70,6 +84,35 @@ void nn_relu_backward(Tensor* grad_output, const Tensor* input_cache) {
     if (input_cache->values[i] <= 0) {
       grad_output->values[i] = 0;
     }
+  }
+}
+
+void nn_gelu_forward(Tensor* t) {
+  const float SQRT_2_OVER_PI = 0.7978845608f;
+  
+  for(size_t i = 0; i < t->total_elements; i++) {
+    float x = t->values[i];
+    t->values[i] = 0.5f * x * (1.0f + tanhf(SQRT_2_OVER_PI*(x + 0.044715f * x * x * x)));
+  }
+}
+
+void nn_gelu_backward(Tensor* grad_output, const Tensor* input_cache) {
+  const float SQRT_2_OVER_PI = 0.7978845608f;
+  const float COEF = 0.044715f;
+  const float COEF_DERIV = 0.134145f;
+  
+  for(size_t i = 0; i < grad_output->total_elements; i++) {
+    float x = input_cache->values[i];
+    float x2 = x * x;
+    float x3 = x2 * x;
+    float u = x + COEF * x3;
+    float tanh_u = tanhf(SQRT_2_OVER_PI * u);
+    float sech2 = 1.0f - (tanh_u * tanh_u);
+    float du = 1.0f + COEF_DERIV * x2;
+    
+    float local_grad = 0.5f * (1.0f + tanh_u) + (0.5f * x * sech2 * SQRT_2_OVER_PI * du);
+        
+    grad_output->values[i] *= local_grad;
   }
 }
 
@@ -95,7 +138,7 @@ void nn_softmax_forward(Tensor* t) {
   
 }
 
-float nn_mse_loss(const Tensor* predictions, const Tensor* targets){ 
+float nn_mse_loss(const Tensor* predictions, const Tensor* targets) { 
   float sum = 0.0f;
   for(size_t i = 0; i < predictions->total_elements; i++) {
     float diff = (targets->values[i] - predictions->values[i]);
@@ -117,7 +160,7 @@ float nn_cross_entropy_loss(const Tensor* predictions, const Tensor* targets) {
   
   for(size_t i = 0; i < targets->total_elements; i++) {
     if (targets->values[i] > 0.0f) {
-      loss -= targets->values[i] * log(predictions->values[i] + epsilon);
+      loss -= targets->values[i] * logf(predictions->values[i] + epsilon);
     }
   }
   
@@ -137,6 +180,65 @@ void nn_sgd_update(LinearLayer* layer, float learning_rate) {
   
   for (size_t i = 0; i < layer->bias->total_elements; i++) {
     layer->bias->values[i] -= learning_rate * layer->grad_bias->values[i];
+  }
+  
+  tensor_zeros(layer->grad_weight);
+  tensor_zeros(layer->grad_bias);
+}
+
+void nn_rmsprop_update(LinearLayer* layer, float lr, float rho, float epsilon, float weight_decay) {
+  for (size_t i = 0; i < layer->weights->total_elements; i++) {
+    float g = layer->grad_weight->values[i];
+    float w = layer->weights->values[i];
+    
+    w = w - (lr * weight_decay * w);
+    
+    layer->v_weight->values[i] = rho * layer->v_weight->values[i] + (1.0f - rho) * (g * g);
+    
+    layer->weights->values[i] = w - lr / (sqrtf(layer->v_weight->values[i]) + epsilon) * g;
+  }
+  
+  for (size_t i = 0; i < layer->bias->total_elements; i++) {
+    float g = layer->grad_bias->values[i];
+    
+    layer->v_bias->values[i] = rho * layer->v_bias->values[i] + (1.0f - rho) * (g * g);
+    
+    layer->bias->values[i] = layer->bias->values[i] - lr / (sqrtf(layer->v_bias->values[i]) + epsilon) * g;
+  }
+  
+  tensor_zeros(layer->grad_weight);
+  tensor_zeros(layer->grad_bias);
+}
+
+void nn_adamw_update(LinearLayer* layer, float lr, int t, float beta1, float beta2, float epsilon, float weight_decay) {
+  float b1_t = 1.0f - powf(beta1, t);
+  float b2_t = 1.0f - powf(beta2, t);
+  
+  for (size_t i = 0; i < layer->weights->total_elements; i++) {
+    float g = layer->grad_weight->values[i];
+    float w = layer->weights->values[i];
+    
+    w = w - (lr * weight_decay * w);
+    
+    layer->m_weight->values[i] = beta1 * layer->m_weight->values[i] + (1.0f - beta1) * g;
+    layer->v_weight->values[i] = beta2 * layer->v_weight->values[i] + (1.0f - beta2) * (g * g);
+    
+    float m_hat = layer->m_weight->values[i] / b1_t;
+    float v_hat = layer->v_weight->values[i] / b2_t;
+    
+    layer->weights->values[i] = w - lr * (m_hat / (sqrtf(v_hat) + epsilon));
+  }
+  
+  for (size_t i = 0; i < layer->bias->total_elements; i++) {
+    float g = layer->grad_bias->values[i];
+    
+    layer->m_bias->values[i] = beta1 * layer->m_bias->values[i] + (1.0f - beta1) * g;
+    layer->v_bias->values[i] = beta2 * layer->v_bias->values[i] + (1.0f - beta2) * (g * g);
+    
+    float m_hat = layer->m_bias->values[i] / b1_t;
+    float v_hat = layer->v_bias->values[i] / b2_t;
+    
+    layer->bias->values[i] -= lr * (m_hat / (sqrtf(v_hat) + epsilon));
   }
   
   tensor_zeros(layer->grad_weight);

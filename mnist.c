@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
   Tensor* grad_hidden = tensor_create(hidden_shape, 2);
   Tensor* grad_input = tensor_create(input_grad_shape, 2);
 
-  const float learning_rate = 0.01f;
+  const float learning_rate = 0.001f;
 
   for (int epoch = 0; epoch < epochs; epoch++) {
     float epoch_loss = 0.0f;
@@ -261,9 +261,13 @@ int main(int argc, char** argv) {
       nn_linear_backward(l2, grad_output, grad_hidden);
       nn_relu_backward(grad_hidden, hidden_before_relu);
       nn_linear_backward(l1, grad_hidden, grad_input);
-
-      nn_sgd_update(l1, learning_rate);
-      nn_sgd_update(l2, learning_rate);
+      
+      nn_adamw_update(l1, learning_rate, epoch * train_limit + i + 1, 0.9f, 0.999f, 1e-8f, 1e-4f);
+      nn_adamw_update(l2, learning_rate, epoch * train_limit + i + 1, 0.9f, 0.999f, 1e-8f, 1e-4f);
+      
+      //nn_sgd_update(l1, 0.01f);
+      //nn_sgd_update(l2, 0.01f);
+      
     }
 
     printf("Epoch %d/%d - loss: %.4f - accuracy: %.2f%%\n",

@@ -35,7 +35,6 @@ void tensor_add_scalar(Tensor* dest, const Tensor* a, float scalar);
 void tensor_mul_elementwise(Tensor* dest, const Tensor* a, const Tensor* b);
 void tensor_matmul_2d(Tensor* dest, const Tensor* a, const Tensor* b);
 void tensor_transpose(Tensor* t, int dim0, int dim1);
-void tensor_relu(Tensor* t);
 int tensor_argmax(const Tensor* t);
 void tensor_print(const Tensor* t);
 
