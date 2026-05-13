@@ -90,5 +90,14 @@ void nn_mse_gradient(const Tensor* predictions, const Tensor* targets, Tensor* g
 }
 
 void nn_sgd_update(LinearLayer* layer, float learning_rate) {
+  for (size_t i = 0; i < layer->weights->total_elements; i++) {
+    layer->weights->values[i] -= learning_rate * layer->grad_weight->values[i];
+  }
   
+  for (size_t i = 0; i < layer->bias->total_elements; i++) {
+    layer->bias->values[i] -= learning_rate * layer->grad_bias->values[i];
+  }
+  
+  tensor_zeros(layer->grad_weight);
+  tensor_zeros(layer->grad_bias);
 }
