@@ -12,7 +12,7 @@ typedef struct {
   Tensor* grad_weight; 
   Tensor* grad_bias;
   
-  //adamw
+  //AdamW
   Tensor* m_weight;
   Tensor* v_weight;
   
@@ -20,6 +20,25 @@ typedef struct {
   Tensor* v_bias;
   
 } LinearLayer;
+
+typedef struct {
+    Tensor* gamma;
+    Tensor* beta;
+    
+    Tensor* grad_gamma;
+    Tensor* grad_beta;
+    
+    // AdamW 
+    Tensor* m_gamma;
+    Tensor* v_gamma;
+    Tensor* m_beta;
+    Tensor* v_beta;
+    
+    Tensor* input_cache;
+    Tensor* normalized_cache;
+    float mean_cache;
+    float inv_std_cache;
+} LayerNormLayer;
 
 LinearLayer* linear_layer_create(int input_dim, int output_dim);
 void nn_linear_free(LinearLayer* layer);
@@ -33,6 +52,9 @@ void nn_gelu_backward(Tensor* grad_output, const Tensor* input_cache);
 
 void nn_softmax_forward(Tensor* t);
 void nn_softmax_backward(Tensor* grad_output, Tensor* input_cache);
+
+void nn_layer_norm_forward(LayerNormLayer* layer, const Tensor* input, Tensor* output, float epsilon);
+void nn_layer_norm_backward(LayerNormLayer* layer, const Tensor* grad_output, Tensor* grad_input);
 
 float nn_mse_loss(const Tensor* predictions, const Tensor* targets);
 void nn_mse_gradient(const Tensor* predictions, const Tensor* targets, Tensor* grad_output);

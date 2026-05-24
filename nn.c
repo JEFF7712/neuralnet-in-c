@@ -138,6 +138,67 @@ void nn_softmax_forward(Tensor* t) {
   
 }
 
+void nn_layer_norm_forward(LayerNormLayer* layer, const Tensor* input, Tensor* output, float epsilon) {
+  if (layer->input_cache) tensor_free(layer->input_cache);
+      layer->input_cache = tensor_clone(input);
+  
+  float sum = 0.0f;
+  for (size_t i = 0; i < input->total_elements; i++) {
+    sum += input->values[i];
+  }
+  float mean = sum / (float)t->total_elements;
+  layer->mean_cache = mean;
+  
+  float var = 0.0f;
+  for (size_t i = 0; i < input->total_elements; i++) {
+    float diff = (input->values[i] - mean);
+    var += diff * diff;
+  }
+  
+  var /= (float)input->total_elements;
+  float inv_stddev = 1.0f / sqrtf(var + epsilon);
+  layer->inv_std_cache = inv_stddev;
+  
+  for (size_t i = 0; i < input->total_elements; i++) {
+    // Standardize
+    float norm_val = (input->values[i] - mean) * inv_stddev;
+    
+    // Cache
+    layer->normalized_cache->values[i] = norm_val;
+    
+    // Apply transformation
+    output->values[i] = (norm_val * layer->gamma->values[i]) + layer->beta->values[i];
+  }
+  
+}
+
+void nn_layer_norm_backward(LayerNormLayer* layer, const Tensor* grad_output, Tensor* grad_input) {
+  size_t N = grad_output->total_elements;
+  float inv_N = 1.0f / (float)N;
+
+  float sum_dx_hat = 0.0f;
+  float sum_dx_hat_x_hat = 0.0f;
+
+  for (size_t i = 0; i < N; i++) {
+    float dy = grad_output->values[i];
+    float x_hat = layer->normalized_cache->values[i];
+
+    layer->grad_gamma->values[i] += dy * x_hat;
+    layer->grad_beta->values[i] += dy;
+
+    float dx_hat = dy * layer->gamma->values[i];
+    sum_dx_hat += dx_hat;
+    sum_dx_hat_x_hat += dx_hat * x_hat;
+  }
+
+  for (size_t i = 0; i < N; i++) {
+    float dx_hat = grad_output->values[i] * layer->gamma->values[i];
+    float x_hat = layer->normalized_cache->values[i];
+
+    grad_input->values[i] = layer->inv_std_cache * (dx_hat - (sum_dx_hat * inv_N) - (x_hat * sum_dx_hat_x_hat * inv_N));
+  }
+}
+
 float nn_mse_loss(const Tensor* predictions, const Tensor* targets) { 
   float sum = 0.0f;
   for(size_t i = 0; i < predictions->total_elements; i++) {

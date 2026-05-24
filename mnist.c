@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
         hidden_before_relu->values[j] = hidden->values[j];
       }
 
-      nn_relu_forward(hidden);
+      nn_gelu_forward(hidden);
       nn_linear_forward(l2, hidden, output);
       nn_softmax_forward(output);
 
@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
 
       nn_cross_entropy_gradient(output, train.labels[i], grad_output);
       nn_linear_backward(l2, grad_output, grad_hidden);
-      nn_relu_backward(grad_hidden, hidden_before_relu);
+      nn_gelu_backward(grad_hidden, hidden_before_relu);
       nn_linear_backward(l1, grad_hidden, grad_input);
       
       nn_adamw_update(l1, learning_rate, epoch * train_limit + i + 1, 0.9f, 0.999f, 1e-8f, 1e-4f);
@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
   int correct = 0;
   for (int i = 0; i < test_limit; i++) {
     nn_linear_forward(l1, test.images[i], hidden);
-    nn_relu_forward(hidden);
+    nn_gelu_forward(hidden);
     nn_linear_forward(l2, hidden, output);
     nn_softmax_forward(output);
 

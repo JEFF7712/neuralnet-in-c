@@ -4,12 +4,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct {
+typedef struct Tensor{
   float* values;
   int* shape;
   int* strides;
   int rank;
   size_t total_elements;
+  
+  bool requires_autograd;
+  void (*backward_fn)(struct Tensor*);
+  struct Tensor** parents;
+  int num_parents;
 }Tensor;
 
 /*

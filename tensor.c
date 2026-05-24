@@ -172,6 +172,19 @@ void tensor_transpose(Tensor* t, int dim0, int dim1) {
   t->strides[dim1] = temp_stride;
 }
 
+int tensor_argmax(const Tensor* t) {
+  int max_idx = 0;
+  float max = t->values[0];
+  for (size_t i = 0; i < t->total_elements; i++) {
+    if (t->values[i] > max) {
+      max = t->values[i];
+      max_idx = i;
+    }
+  }
+  
+  return max_idx;
+}
+
 static void print_recursive(const Tensor* t, int dim, size_t offset) {
   if (t->rank == 0) {
     printf("%f", t->values[0]);
@@ -201,19 +214,6 @@ static void print_recursive(const Tensor* t, int dim, size_t offset) {
     }
   }
   printf("]");
-}
-
-int tensor_argmax(const Tensor* t) {
-  int max_idx = 0;
-  float max = t->values[0];
-  for (size_t i = 0; i < t->total_elements; i++) {
-    if (t->values[i] > max) {
-      max = t->values[i];
-      max_idx = i;
-    }
-  }
-  
-  return max_idx;
 }
 
 void tensor_print(const Tensor* t) {
