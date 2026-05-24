@@ -3,9 +3,11 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include "arena.h"
 
 typedef struct Tensor{
   float* values;
+  float* grad;
   int* shape;
   int* strides;
   int rank;
@@ -27,20 +29,33 @@ typedef struct Tensor{
  * total_elements = the total number of elements in the tensor: # of elements in values array
  */
 
-Tensor* tensor_create(int* shape, int rank);
-Tensor* tensor_create_zeros(int* shape, int rank);
-Tensor* tensor_clone(const Tensor* t);
+typedef struct {
+  Arena* arena;
+  
+  Tensor** gradient_tape;
+  int tape_count;
+  int tape_capacity;
+} GraphContext;
+
+GraphContext* ctx_create(size_t initial_memory);
+void ctx_reset(GraphContext* ctx);
+void ctx_destroy(GraphContext* ctx);
+
+Tensor* tensor_create(GraphContext* ctx, int* shape, int rank, bool requires_grad);
+Tensor* tensor_create_zeros(GraphContext* ctx, int* shape, int rank, bool requires_grad);
+Tensor* tensor_clone(GraphContext* ctx, Tensor* t);
 void tensor_zeros(Tensor* t);
 void tensor_ones(Tensor* t);
 void tensor_rand(Tensor* t, float low, float high);
-void tensor_free(Tensor* t);
 bool tensor_shape_equal(const Tensor* a, const Tensor* b);
-void tensor_add(Tensor* dest, const Tensor* a, const Tensor* b);
-void tensor_add_scalar(Tensor* dest, const Tensor* a, float scalar);
-void tensor_mul_elementwise(Tensor* dest, const Tensor* a, const Tensor* b);
-void tensor_matmul_2d(Tensor* dest, const Tensor* a, const Tensor* b);
-void tensor_transpose(Tensor* t, int dim0, int dim1);
+Tensor* tensor_add(GraphContext* ctx, Tensor* a, Tensor* b);
+Tensor* tensor_add_scalar(GraphContext* ctx, Tensor* a, float scalar);
+Tensor* tensor_mul_elementwise(GraphContext* ctx, Tensor* a, Tensor* b);
+Tensor* tensor_matmul_2d(GraphContext* ctx, Tensor* a, Tensor* b);
+Tensor* tensor_transpose(GraphContext* ctx, Tensor* t, int dim0, int dim1);
 int tensor_argmax(const Tensor* t);
 void tensor_print(const Tensor* t);
+
+void tensor_backward(GraphContext* ctx, Tensor* loss);
 
 #endif

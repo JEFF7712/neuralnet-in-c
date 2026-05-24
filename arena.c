@@ -14,7 +14,7 @@ void arena_init(Arena *a, size_t size) {
   }
   
   a->head->buffer = (unsigned char*)malloc(size);
-  if (a->head == NULL) {
+  if (a->head->buffer == NULL) {
     fprintf(stderr, "Fatal: Failed to allocate Arena buffer\n");
     free(a->head);
     exit(1);
@@ -30,11 +30,17 @@ void arena_init(Arena *a, size_t size) {
 void* arena_alloc(Arena *a, size_t size, size_t align) {
   assert((align & (align - 1)) == 0);
   
-  uintptr_t curr_ptr = (uintptr_t)a->current->offset + (uintptr_t)a->current->buffer;
-  uintptr_t aligned_ptr = (curr_ptr + align - 1) & ~(align - 1);
-  size_t padding = (size_t)(aligned_ptr - curr_ptr);
-  
-  if (size + a->current->offset + padding > a->current->capacity) {
+  while (1) {
+    uintptr_t curr_ptr = (uintptr_t)a->current->offset + (uintptr_t)a->current->buffer;
+    uintptr_t aligned_ptr = (curr_ptr + align - 1) & ~(align - 1);
+    size_t padding = (size_t)(aligned_ptr - curr_ptr);
+    
+    if (size + a->current->offset + padding <= a->current->capacity) {
+      size_t aligned_offset = a->current->offset + padding;
+      a->current->offset = aligned_offset + size;
+      return &a->current->buffer[aligned_offset];
+    }
+    
     if (a->current->next == NULL) {
       ArenaBlock* new_block = (ArenaBlock*)malloc(sizeof(ArenaBlock));
       if (!new_block) return NULL;
@@ -46,21 +52,16 @@ void* arena_alloc(Arena *a, size_t size, size_t align) {
         free(new_block);
         return NULL;
       }
+        
+        new_block->capacity = new_cap;
+        new_block->offset = 0;
+        new_block->next = NULL;
+        
+        a->current->next = new_block;
+      }
       
-      new_block->capacity = new_cap;
-      new_block->offset = 0;
-      new_block->next = NULL;
-      
-      a->current->next = new_block;
+      a->current = a->current->next;
     }
-    
-    a->current = a->current->next;
-  }
-  
-  size_t aligned_offset = a->current->offset + padding;
-  a->current->offset = aligned_offset + size;
-  
-  return &a->current->buffer[aligned_offset];
 }
 
 void* arena_calloc(Arena *a, size_t size, size_t align) {
