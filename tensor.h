@@ -57,5 +57,6 @@ int tensor_argmax(const Tensor* t);
 void tensor_print(const Tensor* t);
 
 void tensor_backward(GraphContext* ctx, Tensor* loss);
+void tensor_zero_grad(Tensor* t);
 
 #endif

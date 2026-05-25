@@ -462,3 +462,9 @@ void tensor_backward(GraphContext* ctx, Tensor* loss) {
     }
   }
 }
+
+void tensor_zero_grad(Tensor* t) {
+  if (t && t->grad) {
+    memset(t->grad, 0, t->total_elements * sizeof(float));
+  }
+}
