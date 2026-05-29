@@ -35,7 +35,6 @@ Tensor* nn_linear_forward(GraphContext* ctx, LinearLayer* layer, Tensor* input);
 Tensor* nn_relu_forward(GraphContext* ctx, Tensor* t);
 Tensor* nn_gelu_forward(GraphContext* ctx, Tensor* t);
 Tensor* nn_softmax_forward(GraphContext* ctx, Tensor* t);
-void nn_softmax_backward(Tensor* grad_output, Tensor* input_cache);
 Tensor* nn_layer_norm_forward(GraphContext* ctx, LayerNormLayer* layer, Tensor* input);
 Tensor* nn_mse_loss(GraphContext* ctx, Tensor* predictions, Tensor* targets);
 Tensor* nn_cross_entropy_loss(GraphContext* ctx, Tensor* predictions, Tensor* targets);

@@ -1,9 +1,10 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#include "arena.h"
+
 #include <stdlib.h>
 #include <stdbool.h>
-#include "arena.h"
 
 typedef struct Tensor{
   float* values;
