@@ -1,5 +1,3 @@
-# neuralnet
-
 A small neural network library in C17 with reverse-mode autograd, arena allocation, and no external dependencies (just `libm`).
 
 ## Features
