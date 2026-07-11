@@ -10,7 +10,7 @@ A small neural network library in C17 with reverse-mode autograd, arena allocati
 
 ## MNIST results
 
-Trained 3 epochs on 60k images with a linear + softmax model:
+Trained 3 epochs on 60k images with a linear + softmax model.
 
 ```
 Epoch 1/3 - loss: 0.2227 - accuracy: 93.36%
